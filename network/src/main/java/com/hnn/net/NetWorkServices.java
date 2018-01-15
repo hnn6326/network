@@ -1,0 +1,141 @@
+package com.hnn.net;
+
+import com.hnn.net.callback.INetWorkServices;
+import com.hnn.net.callback.IRequestListener;
+import com.hnn.net.callback.IServices;
+import com.hnn.net.parameter.RequestParameters;
+import com.hnn.net.util.ObjectUtils;
+import com.hnn.net.util.Response;
+import com.hnn.scheduler.SchedulersCompat;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Retrofit;
+import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
+import retrofit2.converter.gson.GsonConverterFactory;
+import rx.Subscriber;
+
+/**
+ * 网络请求
+ * Created by hnn on 2018/1/10.
+ */
+
+public class NetWorkServices implements INetWorkServices {
+
+    public static final int NETWORK_TIMEOUT = 60;
+
+    private static final String MEDIA_TYPE = "application/json";
+
+    private String mBaseUrl;
+
+    private Retrofit mRetrofit;
+
+    private HashMap<String, Subscriber> mRequestList = new HashMap<>();
+
+    public void setBaseUrl(String mBaseUrl) {
+        this.mBaseUrl = mBaseUrl;
+    }
+
+    @Override
+    public String sendRequest(RequestParameters requestParameters, final IRequestListener requestListener) {
+        Retrofit retrofit = getRetrofit();
+        IServices services = retrofit.create(IServices.class);
+
+        final String requestId = UUID.randomUUID().toString();
+
+        Subscriber subscriber = new Subscriber<ResponseBody>() {
+            @Override
+            public void onCompleted() {
+                mRequestList.remove(requestId);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                if(requestListener != null){
+                    requestListener.onError(new Response(e));
+                }
+            }
+
+            @Override
+            public void onNext(ResponseBody responseBody) {
+                if(requestListener != null){
+                    requestListener.onSuccess(new Response(responseBody));
+                }
+            }
+        };
+
+        mRequestList.put(requestId, subscriber);
+
+        if(requestParameters.requestIsGet()){
+            try {
+                services.getRequest(mBaseUrl + requestParameters.requestPath,
+                        ObjectUtils.objectToMap(requestParameters.requestBody)).timeout(NETWORK_TIMEOUT, TimeUnit.SECONDS)
+                        .onBackpressureBuffer()
+                        .take(1)
+                        .compose(SchedulersCompat.<ResponseBody>applyComputationSchedulers())
+                        .subscribe(subscriber);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }else if(requestParameters.requestIsPost()){
+            services.postRequest(mBaseUrl + requestParameters.requestPath, getRequestBody(requestParameters.requestBodyStr))
+                    .timeout(NETWORK_TIMEOUT, TimeUnit.SECONDS)
+                    .onBackpressureBuffer()
+                    .take(1)
+                    .compose(SchedulersCompat.<ResponseBody>applyExecutorSchedulers())
+                    .subscribe(subscriber);
+        }
+        return requestId;
+    }
+
+    @Override
+    public boolean cancelRequest(String requestId) {
+        Subscriber requestSubscriber = mRequestList.get(requestId);
+        if(requestSubscriber != null && !requestSubscriber.isUnsubscribed()){
+            requestSubscriber.unsubscribe();
+            return true;
+        }
+        return false;
+    }
+
+    public Retrofit getRetrofit() {
+        if(mRetrofit == null){
+            OkHttpClientHelper.getInstance().init();
+            mRetrofit = new Retrofit.Builder()
+                    .client(OkHttpClientHelper.getInstance().getOkHttpClient())
+                    .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .baseUrl(mBaseUrl)
+                    .build();
+        }else{
+            return mRetrofit;
+        }
+        return mRetrofit;
+    }
+
+    protected RequestBody getRequestBody(String request) {
+        return RequestBody.create(MediaType.parse(MEDIA_TYPE), request);
+    }
+
+    public void destroy(){
+        if(mRequestList != null){
+            Iterator iterator = mRequestList.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry entry = (Map.Entry) iterator.next();
+                Subscriber requestSubscriber = (Subscriber) entry.getValue();
+                if(requestSubscriber != null && !requestSubscriber.isUnsubscribed()){
+                    requestSubscriber.unsubscribe();
+                }
+            }
+        }
+    }
+
+}
