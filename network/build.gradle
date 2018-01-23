@@ -20,7 +20,8 @@ android {
 
 }
 
-apply from: 'upload.gradle'
+//apply from: 'upload.gradle'
+apply from: 'upload-1.gradle'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
