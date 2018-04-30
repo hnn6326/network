@@ -4,7 +4,7 @@ ext {
 
     publishedGroupId = 'com.hnn.network'    //jcenter的GroupId：一般是包名
     artifact = 'network'     //jcenter的ArtifactId：一般是项目名
-    libraryVersion = '2.0.2'    //发布的版本号：每次上传必须不一样
+    libraryVersion = '3.0.4'    //发布的版本号：每次上传必须不一样
 
     siteUrl = 'http://henannan.com'       //网站地址
     gitUrl = 'https://github.com/hnn6326'    //git地址

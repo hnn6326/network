@@ -1,5 +1,6 @@
 package hnn.com.network;
 
+import com.hnn.net.parameter.CacheConfig;
 import com.hnn.net.parameter.IParameter;
 
 /**
@@ -7,17 +8,20 @@ import com.hnn.net.parameter.IParameter;
  */
 public enum  WeatherParameter implements IParameter{
 
-    LIST("data/sk/101010100.html", "get");
+    LIST("data/sk/101190408.html", "get", CacheConfig.DEFAULT);
 
     String mRequestPath;
 
     String mRequestType;
 
+    CacheConfig mCacheConfig;
 
 
-    WeatherParameter(String requestPath, String requestType) {
+
+    WeatherParameter(String requestPath, String requestType, CacheConfig cacheConfig) {
         mRequestPath = requestPath;
-        mRequestType =requestType;
+        mRequestType = requestType;
+        mCacheConfig = cacheConfig;
     }
 
 
@@ -29,5 +33,10 @@ public enum  WeatherParameter implements IParameter{
     @Override
     public String getRequestType() {
         return mRequestType;
+    }
+
+    @Override
+    public CacheConfig getRequestCacheConfig() {
+        return mCacheConfig;
     }
 }

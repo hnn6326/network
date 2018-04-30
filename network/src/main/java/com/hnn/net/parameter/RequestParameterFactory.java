@@ -14,7 +14,7 @@ public class RequestParameterFactory {
         mRequestParameters.requestPath = parameter.getRequestPath();
         mRequestParameters.requestType = parameter.getRequestType();
         mRequestParameters.requestBodyStr = new Gson().toJson(request);
-        mRequestParameters.requestBody = request;
+        mRequestParameters.request.requestBody = request;
         return mRequestParameters;
     }
 

@@ -17,7 +17,6 @@ public class ObjectUtils {
             return map;
         }
         Class<?> clazz = obj.getClass();
-        System.out.println(clazz);
         for (Field field : clazz.getDeclaredFields()) {
             field.setAccessible(true);
             String fieldName = field.getName();

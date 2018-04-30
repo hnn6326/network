@@ -8,4 +8,5 @@ public interface IParameter {
 
     String getRequestPath();
     String getRequestType();
+    CacheConfig getRequestCacheConfig();
 }

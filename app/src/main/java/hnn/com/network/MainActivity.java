@@ -1,7 +1,9 @@
 package hnn.com.network;
 
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.TextView;
 
@@ -9,6 +11,8 @@ import com.hnn.net.NetWorkServices;
 import com.hnn.net.callback.IRequestListener;
 import com.hnn.net.parameter.RequestParameters;
 import com.hnn.net.util.Response;
+
+import hnn.com.network.entity.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -21,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mNetWorkServices = new NetWorkServices(this);
         mWeatherTv = findViewById(R.id.tv_context);
     }
 
@@ -38,13 +43,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void requestWeather() {
-        mNetWorkServices.setBaseUrl("http://www.weather.com.cn/");
+        mNetWorkServices.setBaseUrl(BuildConfig.URL);
 
-        mNetWorkServices.sendRequest(new RequestParameters(WeatherParameter.LIST, new Object()), new IRequestListener() {
+        List list =new List();
+        mNetWorkServices.sendRequest(new RequestParameters(WeatherParameter.LIST, list), new IRequestListener() {
             @Override
             public void onSuccess(Response response) {
                 WeatherResponseBody weatherResponseBody = (WeatherResponseBody) response.getBody(WeatherResponseBody.class);
-                mWeatherTv.setText(weatherResponseBody.weatherinfo.city);
+
+                Log.d("返回数据：", response.bodyStr + "=======" + weatherResponseBody.weatherinfo.time);
+                mWeatherTv.setText(response.bodyStr);
             }
 
             @Override

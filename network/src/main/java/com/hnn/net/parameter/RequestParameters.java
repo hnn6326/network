@@ -12,9 +12,13 @@ public class RequestParameters {
 
     public String requestBodyStr;
 
-    public Object requestBody;
+    public MyRequest request = new MyRequest();
+
+    public String requestStr;
 
     public String requestType;
+
+    public CacheConfig catchConfig;
 
     public boolean requestIsPost(){
         return "post".equals(requestType);
@@ -29,10 +33,19 @@ public class RequestParameters {
     }
 
     public RequestParameters(IParameter parameter, Object requestBody){
-        this.requestBody = requestBody;
-        requestBodyStr = new Gson().toJson(requestBody);
+        request.requestBody = requestBody;
+        requestBodyStr = new Gson().toJson(request.requestBody);
+        requestStr = new Gson().toJson(request);
         requestPath = parameter.getRequestPath();
         requestType = parameter.getRequestType();
+        catchConfig = parameter.getRequestCacheConfig();
+    }
+
+    public class MyRequest{
+        //0 不缓存 1缓存
+        public CacheConfig catchConfig;
+
+        public Object requestBody;
     }
 
 }

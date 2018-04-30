@@ -1,5 +1,6 @@
 package com.hnn.net.sample;
 
+import com.hnn.net.parameter.CacheConfig;
 import com.hnn.net.parameter.IParameter;
 
 /**
@@ -9,15 +10,17 @@ import com.hnn.net.parameter.IParameter;
 public enum RequestParameter implements IParameter {
 
 
-    TESTA("student/login.json", "post");
+    TESTA("student/login.json", "post", CacheConfig.DEFAULT);
 
-    RequestParameter(String requestPath, String requestType) {
+    RequestParameter(String requestPath, String requestType, CacheConfig cacheConfig) {
         mRequestPath = requestPath;
         mRequestType = requestType;
+        mCacheConfig = cacheConfig;
     }
 
     public String mRequestPath;
     public String mRequestType;
+    public CacheConfig mCacheConfig;
 
     @Override
     public String getRequestPath() {
@@ -27,5 +30,10 @@ public enum RequestParameter implements IParameter {
     @Override
     public String getRequestType() {
         return mRequestType;
+    }
+
+    @Override
+    public CacheConfig getRequestCacheConfig() {
+        return mCacheConfig;
     }
 }

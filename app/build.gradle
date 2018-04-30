@@ -14,9 +14,13 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField("String", "URL", "http://www.weather.com.cn/")
         }
-    }
-    productFlavors {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField("String", "URL", "\"http://www.weather.com.cn/\"")
+        }
     }
 }
 

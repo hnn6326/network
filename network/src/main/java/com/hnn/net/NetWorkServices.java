@@ -1,14 +1,19 @@
 package com.hnn.net;
 
+import android.content.Context;
+
+import com.google.gson.Gson;
 import com.hnn.net.callback.INetWorkServices;
 import com.hnn.net.callback.IRequestListener;
 import com.hnn.net.callback.IServices;
+import com.hnn.net.factory.CatchConverterFactory;
+import com.hnn.net.parameter.CacheConfig;
+import com.hnn.net.parameter.CatchConfigRequestBody;
 import com.hnn.net.parameter.RequestParameters;
 import com.hnn.net.util.ObjectUtils;
 import com.hnn.net.util.Response;
 import com.hnn.scheduler.SchedulersCompat;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,9 +35,13 @@ import rx.Subscriber;
 
 public class NetWorkServices implements INetWorkServices {
 
+    public static final String TAG = NetWorkServices.class.getName();
+
+    private Context mContext;
+
     public static final int NETWORK_TIMEOUT = 60;
 
-    private static final String MEDIA_TYPE = "application/json";
+    public static final String MEDIA_TYPE = "application/json";
 
     private String mBaseUrl;
 
@@ -42,6 +51,14 @@ public class NetWorkServices implements INetWorkServices {
 
     public void setBaseUrl(String mBaseUrl) {
         this.mBaseUrl = mBaseUrl;
+    }
+
+    public NetWorkServices(Context context){
+        mContext = context;
+    }
+
+    public NetWorkServices(){
+
     }
 
     @Override
@@ -75,18 +92,16 @@ public class NetWorkServices implements INetWorkServices {
         mRequestList.put(requestId, subscriber);
 
         if(requestParameters.requestIsGet()){
-            try {
-                services.getRequest(mBaseUrl + requestParameters.requestPath,
-                        ObjectUtils.objectToMap(requestParameters.requestBody)).timeout(NETWORK_TIMEOUT, TimeUnit.SECONDS)
-                        .onBackpressureBuffer()
-                        .take(1)
-                        .compose(SchedulersCompat.<ResponseBody>applyComputationSchedulers())
-                        .subscribe(subscriber);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
+            services.getRequest(mBaseUrl + requestParameters.requestPath,
+                    getRequestBody(requestParameters))
+                    .timeout(NETWORK_TIMEOUT, TimeUnit.SECONDS)
+                    .onBackpressureBuffer()
+                    .take(1)
+                    .compose(SchedulersCompat.<ResponseBody>applyComputationSchedulers())
+                    .subscribe(subscriber);
         }else if(requestParameters.requestIsPost()){
-            services.postRequest(mBaseUrl + requestParameters.requestPath, getRequestBody(requestParameters.requestBodyStr))
+            services.postRequest(mBaseUrl + requestParameters.requestPath,
+                    postRequestBody(requestParameters))
                     .timeout(NETWORK_TIMEOUT, TimeUnit.SECONDS)
                     .onBackpressureBuffer()
                     .take(1)
@@ -94,6 +109,17 @@ public class NetWorkServices implements INetWorkServices {
                     .subscribe(subscriber);
         }
         return requestId;
+    }
+
+    private HashMap<String, Object> getRequestBody(RequestParameters requestParameters) {
+        HashMap<String, Object> getRequest = new HashMap<>();
+        try {
+            getRequest = (HashMap<String, Object>) ObjectUtils.objectToMap(requestParameters.request.requestBody);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        getRequest.put(CacheConfig.class.getName(), new Gson().toJson(requestParameters.catchConfig));
+        return getRequest;
     }
 
     @Override
@@ -108,11 +134,12 @@ public class NetWorkServices implements INetWorkServices {
 
     public Retrofit getRetrofit() {
         if(mRetrofit == null){
-            OkHttpClientHelper.getInstance().init();
+            OkHttpClientHelper.getInstance().init(mContext);
             mRetrofit = new Retrofit.Builder()
                     .client(OkHttpClientHelper.getInstance().getOkHttpClient())
                     .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
                     .addConverterFactory(GsonConverterFactory.create())
+                    .addConverterFactory(new CatchConverterFactory())
                     .baseUrl(mBaseUrl)
                     .build();
         }else{
@@ -121,8 +148,9 @@ public class NetWorkServices implements INetWorkServices {
         return mRetrofit;
     }
 
-    protected RequestBody getRequestBody(String request) {
-        return RequestBody.create(MediaType.parse(MEDIA_TYPE), request);
+    protected RequestBody postRequestBody(RequestParameters request) {
+        RequestBody requestBody = RequestBody.create(MediaType.parse(MEDIA_TYPE), request.requestStr);
+        return requestBody;
     }
 
     public void destroy(){
